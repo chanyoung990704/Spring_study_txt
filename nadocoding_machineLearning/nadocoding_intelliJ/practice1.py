@@ -5,6 +5,7 @@ import matplotlib.pyplot as plt
 import pandas as pd
 from sklearn.linear_model import LinearRegression
 from matplotlib import MatplotlibDeprecationWarning
+from sklearn.linear_model import SGDRegressor  # 확률적 경사 하강법
 
 
 warnings.filterwarnings("ignore", category=MatplotlibDeprecationWarning)
@@ -132,4 +133,33 @@ print(score)
 
 
 #################################################################################
+
+# 경사하강법 (Gradient Descent)
+
+sgd_regressor = SGDRegressor(max_iter=1000, eta0=1e-3, random_state=0, verbose=1) # 확률적 경사 하강법 모델
+# max_iter = 훈련 세트 반복 횟수(epoch), eta0: 학습률(learning Rate)
+# 지수 표기법
+# 1e-3 : 0.001 ( 10^ -3 )
+# 1e+4 : 10 ^ 4 = 10000
+sgd_regressor.fit(x_train, y_train) # 모델 학습
+
+
+# 산점도
+plt.scatter(x_train, y_train, color = 'blue')
+#선 그래프
+plt.plot(x_train, sgd_regressor.predict(x_train), color = 'green')
+# 타이틀
+plt.title('Score by hours  (train set) SGD')
+# X축 이름
+plt.xlabel('hours')
+# Y축 이름
+plt.ylabel('score')
+# 그래프 출력
+plt.show()
+
+print("기울기", sgd_regressor.coef_, "y 절편 : ", sgd_regressor.intercept_)
+
+print("평가 점수 : ", sgd_regressor.score(x_test, y_test))
+
+
 
