@@ -8,6 +8,9 @@ import numpy as np
 import matplotlib.pyplot as plt
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics.pairwise import linear_kernel
+from ast import literal_eval
+from sklearn.feature_extraction.text import CountVectorizer
+from sklearn.metrics.pairwise import cosine_similarity
 
 
 def weighted_rating(x):
@@ -16,7 +19,7 @@ def weighted_rating(x):
     return (v / (v + m) * R) + (m / (m + v) * C)
 
 
-def get_recommendation(title):
+def get_recommendation(title, cosine_sim):
     idx = indices[title]
     # 코사인 유사도 매트릭스에서 idx에 해당하는 데이터를 (idx, 유사도) 형태로 얻기
     similarity_idx_list = list(enumerate(cosine_sim[idx]))
@@ -25,8 +28,40 @@ def get_recommendation(title):
     # 자기 자신을 제외한 10개의 추천 영화 슬라이싱
     similarity_idx_list = similarity_idx_list[1: 11]
     movie_indices = [i[0] for i in similarity_idx_list]
-    #인덱스 정보를 통해 제목 추출
+    # 인덱스 정보를 통해 제목 추출
     return csv2['title'].iloc[movie_indices].values
+
+
+# 감독 정보 추출
+def get_director(x):
+    for i in x:
+        if i['job'] == 'Director':
+            return i['name']
+    return np.nan
+
+
+# 처음 3개의 데이터 중에서 name에 해당하는 value만 추출
+def get_list(x):
+    if isinstance(x, list):
+        names = [i['name'] for i in x]
+        if len(names) > 3:
+            names = names[:3]
+        return names
+    return []
+
+
+def clean_data(x):
+    if isinstance(x, list):
+        return [str.lower(i.replace(' ', '')) for i in x]
+    else:
+        if isinstance(x, str):
+            return str.lower(x.replace(' ', ''))
+        else:
+            return ''
+
+
+def create_soup(x):
+    return ' '.join(x['keywords']) + ' ' + ' '.join(x['cast']) + ' ' + x['director'] + ' ' + ' '.join(x['genres'])
 
 
 # 1. Demographic Filtering
@@ -65,7 +100,7 @@ plt.title("Popular Movies")
 plt.show()
 
 # 2. Content Based Filtering (컨텐츠 기반 필터링)
-
+# 줄거리 기반 필터링
 print(csv2['overview'].head(5))
 
 # Bag Of Words - BOW
@@ -86,5 +121,32 @@ indices = pd.Series(csv2.index, index=csv2['title']).drop_duplicates()  # 1차�
 print(indices)
 
 # 영화의 제목을 입력받으면 코사인 유사도를 통해 가장 유사도가 높은 상위 10개 영화 목록 반환
-recommendation_movie = get_recommendation('Avatar')
+recommendation_movie = get_recommendation('Avatar', cosine_sim)
 print(recommendation_movie)
+
+# 다양한 요소 기반 추천 (장르, 감독, 키워드)
+features = ['cast', 'crew', 'keywords', 'genres']
+for feature in features:
+    csv2[feature] = csv2[feature].apply(literal_eval)
+
+csv2['director'] = csv2['crew'].apply(get_director)
+
+features = ['cast', 'keywords', 'genres']
+for feature in features:
+    csv2[feature] = csv2[feature].apply(get_list)
+
+features = ['cast', 'keywords', 'director', 'genres']
+for feature in features:
+    csv2[feature] = csv2[feature].apply(clean_data)
+
+csv2['soup'] = csv2.apply(create_soup, axis=1)
+
+count = CountVectorizer(stop_words='english')
+count_matrix = count.fit_transform(csv2['soup'])
+
+cosine_sim2 = cosine_similarity(count_matrix, count_matrix)
+
+csv2 = csv2.reset_index()
+indices = pd.Series(csv2.index, index=csv2['title'])
+
+print(get_recommendation('The Dark Knight Rises', cosine_sim2))
