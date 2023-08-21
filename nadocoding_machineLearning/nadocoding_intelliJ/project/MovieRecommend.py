@@ -11,6 +11,7 @@ from sklearn.metrics.pairwise import linear_kernel
 from ast import literal_eval
 from sklearn.feature_extraction.text import CountVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
+import pickle
 
 
 def weighted_rating(x):
@@ -150,3 +151,7 @@ csv2 = csv2.reset_index()
 indices = pd.Series(csv2.index, index=csv2['title'])
 
 print(get_recommendation('The Dark Knight Rises', cosine_sim2))
+
+movies = csv2[['id', 'title']].copy()
+pickle.dump(movies, open('movies.pickle', 'wb'))
+pickle.dump(cosine_sim2, open('cosine_sim.pickle', 'wb'))
